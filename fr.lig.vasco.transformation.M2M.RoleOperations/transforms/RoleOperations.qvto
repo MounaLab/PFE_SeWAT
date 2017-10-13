@@ -1,0 +1,358 @@
+modeltype UML "strict" uses "http://www.eclipse.org/uml2/5.0.0/UML";
+modeltype PolicyRA"strict"  uses RoleOperations('http://www.example.org/RoleOperations');
+modeltype ecore "strict" uses "http://www.eclipse.org/emf/2002/Ecore";
+
+transformation RoleOperations(in uml : UML,out ra: PolicyRA);
+	
+main() {
+    log('++ Transformation Role-Operations START ...');
+	getRootPackage()->map Policy();
+	log('++ Transformation Role-Operations END!');
+}
+
+----------- QUERIES ----------
+
+query getRootPackage() : UML::Package{
+	return uml.rootObjects()[UML::Package]->any(true);
+}
+
+query UML::Element::hasStereotype(stereotypeName : String) : Boolean {
+	return self.getAppliedStereotype(stereotypeName)<>null;
+}
+
+query UML::AssociationClass::getRole() : UML::Class {
+	return self.memberEnd.type[Class]->
+	select(c: Class | c.hasStereotype('RootElement::Role'))->first()	
+}
+
+query UML::AssociationClass::getEntity() : UML::Class {
+	return self.memberEnd.type[Class]->select(c: Class | not c.hasStereotype('RootElement::Role'))->first()	
+}
+
+query Class::findOperation(o: UML::Operation) : UML::Operation {	
+	var ops : Set(UML::Operation):= self.ownedOperation->select(op|op.name=o.name);
+	if (ops->isEmpty()) then {return null;} endif;
+	return ops->any(true);
+	--ops->select(op|op.ownedParameter.type->)	
+}
+
+
+query UML::Package::getRoleOperations(aRole: UML::Class) : Sequence(String) {
+   
+   var toReturn : Sequence(String) = Sequence{};
+   var theOperations : Bag(UML::Operation) = self.allOwnedElements()[UML::AssociationClass].allOwnedElements()[UML::Operation];
+   var constraint : String = '';
+   
+   theOperations->forEach(anOperation) {    
+   	if(anOperation.owner.oclAsType(AssociationClass).getRole() = aRole) {
+   		
+     log('Processing The '+ anOperation.name.toLower()+' Operation for role '+aRole.name+' ...');
+      
+     if (anOperation.owner.hasStereotype('RootElement::Permission') 
+       and anOperation.owner.oclAsType(AssociationClass).getEntity()->notEmpty()) 
+       then {
+     if (anOperation.hasStereotype('RootElement::EntityAction')) then {
+      switch {
+		 case ('read'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		        //log('*** TEST TEST *** '+attr.type.name);
+		        if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attrName);
+		         
+		         if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+		         log('  READ - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attr.name.firstToUpper()));
+		      } endif;
+		     };
+		     
+		     }
+		 case ('modify'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attrName);
+		         
+		         if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+		         log('  MODIFY - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attr.name.firstToUpper()));
+		       } endif;
+		      };
+		     }
+		 case ('create'=anOperation.name.toLower()) {
+		      log('  CREATE - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW'));
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW');
+		       
+		       if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+		     }
+		 case ('delete'=anOperation.name.toLower()) {
+		      log('  DELETE - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free'));
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free');
+		       if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+		     }
+		 case ('privateread'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += self.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attrName);
+
+		         if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+                 log('  PRIVATEREAD - '+ self.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attr.name.firstToUpper()));
+		       } endif;
+		      };
+		     }
+		 case ('privatemodify'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attrName);
+		         
+		         if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+                 log('  PRIVATEMODIFY - '+ self.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attr.name.firstToUpper()));
+		       } endif;
+		      };
+		     }
+		 case ('fullacces'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		      if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		      let attrName : String = attr.name.firstToUpper() in
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attrName);
+		      if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+              log('  FULLACCESS - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attr.name.firstToUpper() ));
+		      } endif;
+		      };
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW');
+		      if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+              log('  FULLACCESS - '+anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW'));
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free');
+		      if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+              log('  FULLACCESS - '+anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free'));
+		     }
+		 else null;
+	 };	
+	 } endif;
+	    if (anOperation.hasStereotype('RootElement::MethodAction')) then {
+	      let attrName : String = anOperation.name in
+		  toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__').concat(attrName);
+		  if (anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->size()>0) {
+		            constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         } else if (anOperation.ownedRule.specification[LiteralString]->isEmpty()) {
+		            toReturn += '_EMPTY_';
+		         } else {
+		           constraint :='';
+		            anOperation.owner.oclAsType(AssociationClass).ownedRule.specification[LiteralString]->forEach(spec) {
+		            	constraint := constraint.concat(spec.value);
+		            };
+		            toReturn += '| Operation : '+ toReturn->at(toReturn->size()) +' | '+constraint;
+		         };
+		  log('  '+anOperation.name.firstToUpper()+' '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__').concat(anOperation.name));
+	 } endif;
+	 } endif;
+   	
+   	}endif;
+   };
+    log('\n\n');
+	return toReturn;
+}
+
+------------- MAPPINGS ------------
+
+mapping UML::Package::Policy() : PolicyRA::Policy  {
+	result.name := self.name;
+	result.role:= (self.allOwnedElements()[UML::Class]->map Role())->asSequence();
+
+	log('Policy Transformation : '+self.name);
+}
+
+
+mapping UML::Class::Role() : PolicyRA::Role 
+when{self.hasStereotype('RootElement::Role')} 
+	{
+	result.name := self.name;	
+	var allOperationConstraint : Sequence(String) = getRootPackage().getRoleOperations(self);
+	var justOperations : Sequence(String) = Sequence{};
+	var justConstraints : Sequence(String) = Sequence{};
+	var i : Integer = 1;
+	
+	allOperationConstraint->forEach(string) {
+	    
+		if(i.mod(2)=1) {
+			justOperations += string;
+		}endif;
+		if(i.mod(2)=0) {
+			justConstraints += string;
+		}endif;
+		
+		i := i+1;
+	};
+	
+	result.operation := (justOperations->map RoleOperationFromString(self, justOperations, justConstraints))->asOrderedSet();
+	
+	log('Role Transformation : '+self.name);
+}
+
+
+mapping String::RoleOperationFromString(role : UML::Class, justOperations : Sequence(String), justConstraints : Sequence(String)) : PolicyRA::Operation {
+	result.name := self;
+	
+	var i : Integer = 1;
+	var j : Integer;
+	
+	justOperations->forEach(string) {
+	   if(string = self) 
+	     then {
+	     	j := i;
+	     }endif;
+	   i := i+1;
+	};
+	
+	result.constraint := (justConstraints->at(j) -> map Constraint(self))->any(true);
+	
+	log('Operation Transformation : '+self+' for role: '+role.name);
+}
+
+mapping String::Constraint(operation : String) : PolicyRA::Constraint {
+	result.body := self;
+	
+	log('Constraint Transformation : '+self + ' for Operation : '+ operation);
+}
+
+mapping OpaqueExpression::oclConstraint() : PolicyRA::Constraint
+when {self.language->includes('OCL')}
+	{	
+	--var cd : String := self._body->at(self.language->indexOf('OCL'));	
+	result.body:=self._body->at(self.language->indexOf('OCL'));	
+	
+	log('** Constraint Transformation : '+self.toString());
+}

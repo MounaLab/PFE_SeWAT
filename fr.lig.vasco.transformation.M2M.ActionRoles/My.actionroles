@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ActionRoles:Policy xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ActionRoles="http://www.example.org/ActionRoles" name="Patient Management">
+  <action label="/patient/details"/>
+  <action label="/medicalrecord/delete"/>
+  <action label="/medicalrecord/edit" role="//@role.0"/>
+  <action label="/medicalrecord/details" role="//@role.3"/>
+  <action label="/patient/edit" role="//@role.1 //@role.2 //@role.3 //@role.0"/>
+  <action label="/medicalrecord/list" role="//@role.3"/>
+  <action label="/medicalrecord/validate" role="//@role.0"/>
+  <action label="/patient/delete"/>
+  <action label="/patient/new" role="//@role.1"/>
+  <action label="/patient/list"/>
+  <action label="/medicalrecord/new" role="//@role.2"/>
+  <role name="Doctor"/>
+  <role name="Secretary"/>
+  <role name="Nurse"/>
+  <role name="MedicalStaff">
+    <constraint body="| Role : MedicalStaff | Operation : MedicalRecord__GetData | If the user is not a doctor, the medical record must be validated."/>
+    <constraint body="| Role : MedicalStaff | Operation : MedicalRecord__GetValid | If the user is not a doctor, the medical record must be validated."/>
+    <constraint body="| Role : MedicalStaff | Operation : MedicalRecord__GetPatient | If the user is not a doctor, the medical record must be validated."/>
+  </role>
+  <secureuml href="../fr.lig.vasco.model.UseCase/MedicalRecordsAC.uml#_1NXoUOxSEeWc8fI54BN1Dg"/>
+  <roleoperations href="../fr.lig.vasco.transformation.M2M.RoleOperations/My.roleoperations#/"/>
+  <webapplicationmodel href="../fr.lig.vasco.model.webapp.patientmanagement/My.webapplicationmodel#/"/>
+</ActionRoles:Policy>

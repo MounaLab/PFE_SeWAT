@@ -1,0 +1,189 @@
+modeltype UML "strict" uses "http://www.eclipse.org/uml2/5.0.0/UML";
+modeltype PolicyRA"strict"  uses RoleOperations('http://www.example.org/RoleOperations');
+modeltype ecore "strict" uses "http://www.eclipse.org/emf/2002/Ecore";
+
+transformation RoleOperations(in uml : UML,out ra: PolicyRA);
+	
+main() {
+    log('Transformation Role-Operations START ...');
+	getRootPackage()->map Policy();
+	log('Transformation Role-Operations END!');
+}
+
+----------- QUERIES ----------
+
+query getRootPackage() : UML::Package{
+	return uml.rootObjects()[UML::Package]->any(true);
+}
+
+query UML::Element::hasStereotype(stereotypeName : String) : Boolean {
+	return self.getAppliedStereotype(stereotypeName)<>null;
+}
+
+query UML::AssociationClass::getRole() : UML::Class {
+	return self.memberEnd.type[Class]->
+	select(c: Class | c.hasStereotype('RootElement::Role'))->first()	
+}
+
+query UML::AssociationClass::getEntity() : UML::Class {
+	return self.memberEnd.type[Class]->select(c: Class | not c.hasStereotype('RootElement::Role'))->first()	
+}
+
+query Class::findOperation(o: UML::Operation) : UML::Operation {	
+	var ops : Set(UML::Operation):= self.ownedOperation->select(op|op.name=o.name);
+	if (ops->isEmpty()) then {return null;} endif;
+	return ops->any(true);
+	--ops->select(op|op.ownedParameter.type->)	
+}
+
+
+query UML::Package::getRoleOperations(aRole: UML::Class) : OrderedSet(String) {
+   
+   var toReturn : OrderedSet(String) = OrderedSet{};
+   var theOperations : Bag(UML::Operation) = self.allOwnedElements()[UML::AssociationClass].allOwnedElements()[UML::Operation];
+   
+   theOperations->forEach(anOperation) {    
+   	if(anOperation.owner.oclAsType(AssociationClass).getRole() = aRole) {
+   		
+     log('Processing The '+ anOperation.name.toLower()+' Operation for role '+aRole.name+' ...');
+      
+     if (anOperation.owner.hasStereotype('RootElement::Permission') 
+       and anOperation.owner.oclAsType(AssociationClass).getEntity()->notEmpty()) 
+       then {
+     if (anOperation.hasStereotype('RootElement::EntityAction')) then {
+      switch {
+		 case ('read'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attrName);
+//		         toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+		         log('  READ - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attr.name.firstToUpper()));
+		     };
+		     }
+		 case ('modify'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attrName);
+//		         toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+		         log('  MODIFY - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attr.name.firstToUpper()));
+		      };
+		     }
+		 case ('create'=anOperation.name.toLower()) {
+		      log('  CREATE - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW'));
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW');
+//		      toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+		     }
+		 case ('delete'=anOperation.name.toLower()) {
+		      log('  DELETE - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free'));
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free');
+//		      toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+		     }
+		 case ('privateread'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += self.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attrName);
+//		         toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+                 log('  PRIVATEREAD - '+ self.owner.oclAsType(AssociationClass).getEntity().name.concat('__Get').concat(attr.name.firstToUpper()));
+		      };
+		     }
+		 case ('privatemodify'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attrName);
+//		         toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+                 log('  PRIVATEMODIFY - '+ self.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attr.name.firstToUpper()));
+		      };
+		     }
+		 case ('fullacces'=anOperation.name.toLower()) {
+		      anOperation.owner.oclAsType(AssociationClass).getEntity().attribute->forEach(attr) {
+		      let attrName : String = attr.name.firstToUpper() in
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attrName);
+//		      toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+              log('  FULLACCESS - '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__Set').concat(attr.name.firstToUpper() ));
+		      };
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW');
+//		      toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+              log('  FULLACCESS - '+anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_NEW'));
+		      toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free');
+//		      toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+              log('  FULLACCESS - '+anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('_Free'));
+		     }
+		 else null;
+	 };	
+	 } endif;
+	    if (anOperation.hasStereotype('RootElement::MethodAction')) then {
+	      let attrName : String = anOperation.name in
+		  toReturn += anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__').concat(attrName);
+//		  toReturn += anOperation.ownedRule.specification[OpaqueExpression].toString(); 
+		  log('  '+anOperation.name.firstToUpper()+' '+ anOperation.owner.oclAsType(AssociationClass).getEntity().name.concat('__').concat(anOperation.name));
+	 } endif;
+	 } endif;
+   	
+   	}endif;
+   };
+	return toReturn;
+}
+
+------------- MAPPINGS ------------
+
+mapping UML::Package::Policy() : PolicyRA::Policy  {
+	result.name := self.name;
+	result.role:= (self.allOwnedElements()[UML::Class]->map Role())->asOrderedSet();
+
+	log('\nPolicy extracted from : '+self.name);
+}
+
+
+mapping UML::Class::Role() : PolicyRA::Role 
+when{self.hasStereotype('RootElement::Role')} 
+	{
+	result.name := self.name;	
+//	var allOperationConstraint : OrderedSet(String) = getRootPackage().getRoleOperations(self);
+//	var justOperations : OrderedSet(String) = OrderedSet{};
+//	var justConstraints : OrderedSet(String) = OrderedSet{};
+//	var i : Integer = 1;
+	
+//	log('ALL ALL: '+ allOperationConstraint->size().toString());
+//	
+//	allOperationConstraint->forEach(string) {
+//	    
+//		if(i.mod(2)=0) {
+//			justOperations += string;
+//		}endif;
+//		if(i.mod(2)=1) {
+//			justConstraints += string;
+//		}endif;
+//		
+//		i := i+1;
+//	};
+//	
+//	log('JUST OPERATIONS : '+ justOperations->size().toString());
+//	log('JUST CONSTRAINTS : '+ justConstraints->size().toString());
+//	justOperations->forEach(el) {
+//		log('JUST OPERATIONS : '+ el);
+//	};
+//	justConstraints->forEach(el) {
+//		log('JUST CONSTRAINTS : '+ el);
+//	};
+//	
+//	result.operation := (justOperations->map RoleOperationFromString())->asOrderedSet();
+	result.operation := (getRootPackage().getRoleOperations(self)->map RoleOperationFromString())->asOrderedSet();
+	//result.operation := (getRootPackage().allOwnedElements()[UML::AssociationClass].allOwnedElements()[UML::Operation]->map Operation(self, result))->asOrderedSet();
+	log('\nRole Transformation : '+self.name);
+}
+
+
+mapping String::RoleOperationFromString() : PolicyRA::Operation {
+	result.name := self;
+	
+	log('\nOperation Transformation : '+self);
+}
+
+mapping OpaqueExpression::oclConstraint() : PolicyRA::Constraint
+when {self.language->includes('OCL')}
+	{	
+	--var cd : String := self._body->at(self.language->indexOf('OCL'));	
+	result.body:=self._body->at(self.language->indexOf('OCL'));	
+	
+	log('\nConstraint Transformation : '+self.toString());
+}

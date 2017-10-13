@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:RoleOperations="http://www.example.org/RoleOperations">
+  <RoleOperations:Policy name="RootElement">
+    <role name="Secretary">
+      <operation name="Patient_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="Doctor">
+      <operation name="MedicalRecord__SetData">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetValid">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetPatient">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__validate">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="MedicalStaff">
+      <operation name="MedicalRecord__GetData">
+        <constraint body="| Operation : MedicalRecord__GetData | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetValid">
+        <constraint body="| Operation : MedicalRecord__GetValid | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetPatient">
+        <constraint body="| Operation : MedicalRecord__GetPatient | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+    </role>
+    <role name="Nurse">
+      <operation name="MedicalRecord_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+  </RoleOperations:Policy>
+  <RoleOperations:Policy name="RootElement">
+    <role name="Secretary">
+      <operation name="Patient_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="Doctor">
+      <operation name="MedicalRecord__SetData">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetValid">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetPatient">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__validate">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="MedicalStaff">
+      <operation name="MedicalRecord__GetData">
+        <constraint body="| Operation : MedicalRecord__GetData | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetValid">
+        <constraint body="| Operation : MedicalRecord__GetValid | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetPatient">
+        <constraint body="| Operation : MedicalRecord__GetPatient | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+    </role>
+    <role name="Nurse">
+      <operation name="MedicalRecord_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+  </RoleOperations:Policy>
+  <RoleOperations:Policy name="RootElement">
+    <role name="Secretary">
+      <operation name="Patient_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="Doctor">
+      <operation name="MedicalRecord__SetData">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetValid">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetPatient">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__validate">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="MedicalStaff">
+      <operation name="MedicalRecord__GetData">
+        <constraint body="| Operation : MedicalRecord__GetData | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetValid">
+        <constraint body="| Operation : MedicalRecord__GetValid | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetPatient">
+        <constraint body="| Operation : MedicalRecord__GetPatient | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+    </role>
+    <role name="Nurse">
+      <operation name="MedicalRecord_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+  </RoleOperations:Policy>
+  <RoleOperations:Policy name="RootElement">
+    <role name="Secretary">
+      <operation name="Patient_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="Doctor">
+      <operation name="MedicalRecord__SetData">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetValid">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__SetPatient">
+        <constraint body="_EMPTY_"/>
+      </operation>
+      <operation name="MedicalRecord__validate">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+    <role name="MedicalStaff">
+      <operation name="MedicalRecord__GetData">
+        <constraint body="| Operation : MedicalRecord__GetData | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetValid">
+        <constraint body="| Operation : MedicalRecord__GetValid | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+      <operation name="MedicalRecord__GetPatient">
+        <constraint body="| Operation : MedicalRecord__GetPatient | If the user is not a doctor, the medical record must be validated."/>
+      </operation>
+    </role>
+    <role name="Nurse">
+      <operation name="MedicalRecord_NEW">
+        <constraint body="_EMPTY_"/>
+      </operation>
+    </role>
+  </RoleOperations:Policy>
+</xmi:XMI>

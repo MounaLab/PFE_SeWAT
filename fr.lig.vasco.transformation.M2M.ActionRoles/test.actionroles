@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ActionRoles:Policy xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ActionRoles="http://www.example.org/ActionRoles" name="PatientManagement">
+  <action label="/patient/create"/>
+  <action label="/patient/list"/>
+  <action label="/patient/delete"/>
+</ActionRoles:Policy>

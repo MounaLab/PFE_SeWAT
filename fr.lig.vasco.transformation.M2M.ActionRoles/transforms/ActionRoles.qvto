@@ -1,0 +1,264 @@
+modeltype WebAppModel "strict" uses WebApplicationModel('http://www.example.org/WebApplicationModel');
+modeltype PolicyRO "strict" uses RoleOperations('http://www.example.org/RoleOperations');
+modeltype ecore uses "http://www.eclipse.org/emf/2002/Ecore";
+modeltype PolicyAR "strict" uses ActionRoles('http://www.example.org/ActionRoles');
+modeltype UML "strict" uses "http://www.eclipse.org/uml2/5.0.0/UML";	
+
+transformation RoleActions(in webapp: WebAppModel, in ro: PolicyRO, out ar: PolicyAR);
+	
+main() {
+	RootQuery();
+}
+
+----------- QUERIES ----------
+
+query getRootRoleOperations() : PolicyRO::Policy {
+	return ro.rootObjects()[PolicyRO::Policy]->any(true);
+}
+
+query getRootWebAppModel() : WebAppModel::Application {
+	return webapp.rootObjects()[WebAppModel::Application]->any(true);
+}
+
+query PolicyRO::Policy::getRolesFromRoleOperations() : Set(PolicyRO::Role) {
+	return self.role;
+}
+
+query PolicyRO::Policy::getOperationsFromRoleOperations() : Sequence(PolicyRO::Operation) {
+	var operations : Sequence(PolicyRO::Operation) = Sequence{};
+	
+	self.role->forEach(r) {
+		r.operation->forEach(o) {
+		  operations += o;
+		};
+	} ;
+	return operations;
+}
+
+//query PolicyRO::Policy::getConstraintsFromRoleOperations() : Set(PolicyRO::Constraint) {
+//	var constraints : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+//	var constraintstrings : OrderedSet(String) = OrderedSet{};
+//	
+//	self.role->forEach(r) {
+//		r.operation->forEach(o) {
+//		  if((o.constraint.body != '_EMPTY_')
+//		      and (constraintstrings->excludes(o.constraint.body))) then {
+//			constraints += o.constraint;
+//			constraintstrings += o.constraint.body;
+//		  } endif;
+//		};
+//	} ;
+//	return constraints->asOrderedSet();
+//}
+
+query WebAppModel::Application::getActionsFromWebApp() : Set(WebAppModel::URLAction) {
+	return self.controller.urlaction->asSet();
+}
+
+query UML::Element::hasStereotype(stereotypeName : String) : Boolean {
+	return self.getAppliedStereotype(stereotypeName)<>null;
+}
+
+query RootQuery() {
+	log('+++ Transformation Action-Roles START ...');
+	getRootWebAppModel()-> map Policy();
+	log('+++ Transformation Action-Roles END!');
+}
+
+query getStringActionOperations(url : WebAppModel::URLAction) : OrderedSet(String) {
+   var toReturn : OrderedSet(String) = OrderedSet{};
+  
+   url.action->forEach(action) {
+     
+     action.entityaction->forEach(entaction) {
+       switch {
+		 case ('read'=entaction.toString().toLower()) {
+		      action.entity.attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += action.entity.name.concat('__Get').concat(attrName);
+		          } endif;
+		         };
+		         }
+		 case ('modify'=entaction.toString().toLower()) {
+		      action.entity.attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += action.entity.name.concat('__Set').concat(attrName);
+		         } endif;
+		         };
+		         } 
+		 case ('create'=entaction.toString().toLower()) {
+		       toReturn += action.entity.name.concat('_NEW');
+		         }
+		 case ('delete'=entaction.toString().toLower()) {
+		       toReturn += action.entity.name.concat('_FREE');
+		         }  
+         case ('privateread'=entaction.toString().toLower()) {
+		      action.entity.attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += action.entity.name.concat('__Get').concat(attrName);
+		         } endif;
+		         };
+		         }  
+		 case ('privatemodify'=entaction.toString().toLower()) {
+		      action.entity.attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += action.entity.name.concat('__Set').concat(attrName);
+		         }endif;
+		         };
+		         }  
+		 case ('fullaccess'=entaction.toString().toLower()) {
+		      action.entity.attribute->forEach(attr) {
+		       if not (attr.type.hasStereotype('RootElement::Role')) then { 
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += action.entity.name.concat('__Set').concat(attrName);
+		         let attrName : String = attr.name.firstToUpper() in
+		         toReturn += action.entity.name.concat('__Get').concat(attrName);
+		         } endif;
+		         };
+		         toReturn += action.entity.name.concat('_NEW');
+		         toReturn += action.entity.name.concat('_FREE');
+		         }   
+		         };
+     };  
+     action.methodaction->forEach(methaction) {
+       let attrName : String = methaction.name in
+       toReturn += action.entity.name.concat('__').concat(attrName);
+     };
+   };
+   
+   	url.operation->forEach(anOperation) {
+		toReturn += anOperation.name;
+	};
+	url.boperation->forEach(anOperation) {
+		toReturn += anOperation.name;
+	};
+
+	return toReturn;
+}
+
+query getOperationConstraints(operation : PolicyRO::Operation) : OrderedSet(PolicyRO::Constraint) {
+   var toReturn : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+   var operations : Sequence(PolicyRO::Operation) = Sequence{};
+   // var operationsStrings : Sequence(String) = Sequence{};
+   
+   operations := getRootRoleOperations().getOperationsFromRoleOperations();
+   
+  // operations->forEach(o) {
+  //	  operationsStrings += o.name;
+   //};
+   
+    var i : Integer = 1;
+	//var j : Integer;
+	
+   operations->forEach(os) {
+   	  if (os = operation) then {
+   	    log(' ** searching for the constraint of operation : '+os.name);
+   	  	toReturn += operations->at(i).constraint;
+   	  	log(' ** finding the constraint : '+operations->at(i).constraint.body);
+   	  } endif;
+   	  i := i+1;
+   };
+   
+   return toReturn;
+}
+
+------------- MAPPINGS ------------
+
+mapping WebAppModel::Application::Policy(): PolicyAR::Policy {
+	result.name := self.name;
+	
+	var actions: Set(WebAppModel::URLAction) = getRootWebAppModel().getActionsFromWebApp();
+	var roles: Set(PolicyRO::Role) = getRootRoleOperations().getRolesFromRoleOperations();
+//	var constraints: Set(PolicyRO::Constraint) = getRootRoleOperations().getConstraintsFromRoleOperations();
+	
+	result.action := actions->map Action()->asOrderedSet();
+	result.role := roles->map Role()->asOrderedSet();
+	//result.constraint := constraints->map Constraint()->asOrderedSet();
+	
+	log('Policy Transformation : '+ result.name);
+}
+
+mapping WebAppModel::URLAction::Action(): PolicyAR::Action {
+	
+	result.label := self.label;
+	
+	var stringActionOperation : OrderedSet(String) = OrderedSet{};
+	var stringRoleOperation : OrderedSet(String) = OrderedSet{};
+	var constraints : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+	var RoleOperationConstraints : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+	var RoleOperationConstraintsFinal : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+	
+	var roles : Sequence(PolicyRO::Role) = Sequence{};
+	var rolestrings : Sequence(String) = Sequence{};
+
+    stringActionOperation := getStringActionOperations(self);
+	
+	(getRootRoleOperations().getRolesFromRoleOperations())->forEach(aRole) {
+	
+	stringRoleOperation := OrderedSet{};
+	constraints := OrderedSet{};
+	//RoleOperationConstraintsFinal := OrderedSet{};
+	
+	aRole.operation->forEach(anOperation) {
+		stringRoleOperation += anOperation.name;
+		constraints += anOperation.constraint;
+	};
+	
+	
+	if(stringRoleOperation->includesAll(stringActionOperation)) then {
+		roles += aRole;
+		RoleOperationConstraints += constraints;
+	} endif;
+	};
+	
+//	RoleOperationConstraints->forEach(const) {
+//		if(const.body != '_EMPTY_') then {
+//			RoleOperationConstraintsFinal += const;
+//		} endif;
+//	};
+
+	//result.role := roles-> collect(resolveIn(PolicyRO::Role::Role));
+	
+	result.role := roles->map Role();
+	//result.constraint := (RoleOperationConstraintsFinal->map Constraint())->asOrderedSet();
+	
+	
+	log('Action Transformation : '+ result.label +' ...');
+}
+
+mapping PolicyRO::Role::Role(): PolicyAR::Role {
+    result.name := self.name;
+    
+	var constraints : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+	var constraintsfinal : OrderedSet(PolicyRO::Constraint) = OrderedSet{};
+	var constraintstrings : OrderedSet(String) = OrderedSet{};
+	
+	self.operation->forEach(o) {
+		constraints += o.constraint;
+	};
+	
+	constraints->forEach(c) {
+		  if((c.body != '_EMPTY_')
+		      and (constraintstrings->excludes(c.body))) then {
+		      c.body := '| Role : '+result.name+' '+c.body;
+			  constraintsfinal += c;
+			  constraintstrings += c.body;
+		  } endif;
+	} ;
+	
+	result.constraint := constraintsfinal ->map Constraint()->asOrderedSet();
+    
+    log('Role Transformation : '+ result.name +' ...');
+}
+
+
+mapping PolicyRO::Constraint::Constraint(): PolicyAR::Constraint {
+    result.body := self.body;
+    
+    log('Constraint Transformation : '+ self.body +'  ...');
+}
+

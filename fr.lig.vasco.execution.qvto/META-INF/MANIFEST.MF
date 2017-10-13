@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: fr.lig.vasco.execution.qvto
+Bundle-SymbolicName: fr.lig.vasco.execution.qvto; singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Require-Bundle: org.eclipse.emf.ecore,
+ org.eclipse.m2m.qvt.oml;bundle-version="3.5.0",
+ org.eclipse.emf.codegen.ecore.ui;bundle-version="2.11.1",
+ org.eclipse.core.runtime;bundle-version="3.11.1",
+ org.eclipse.uml2.uml;bundle-version="5.1.2",
+ org.eclipse.core.resources,
+ fr.lig.vasco.metamodel.RoleOperations;bundle-version="0.1.0",
+ fr.lig.vasco.WebApplicationModel;bundle-version="0.1.0",
+ fr.lig.vasco.metamodel.ActionRoles;bundle-version="0.1.0"
